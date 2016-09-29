@@ -1,13 +1,6 @@
 const express = require('express')
 const app = express()
-
-const fortunes = [
-  "Conquer your fears or they will conquer you.",
-  "Rivers need springs.",
-  "Do not fear what you don't know.",
-  "You will have a pleasant surprise.",
-  "Whenever possible, keep it simple.",
-]
+const fortune = require('./lib/fortune.js')
 
 const handlebars = require('express3-handlebars').create({
   defaultLayout: 'main'
