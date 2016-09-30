@@ -1,3 +1,4 @@
+'use strict'
 const express = require('express')
 const app = express()
 const fortune = require('./lib/fortune.js')
@@ -15,6 +16,13 @@ app.use((req, res, next) => {
   next()
 })
 app.use(express.static(`${__dirname}/public`))
+
+app.get('/headers', (req,res) => {
+  res.set('Content-Type','text/plain')
+  let s = ''
+  for(var name in req.headers) s += name + ': ' + req.headers[name] + '\n'
+  res.send(s)
+})
 
 app.get('/', (req, res) => {
   res.render('home')
@@ -41,7 +49,7 @@ app.use((req, res) => {
   res.render('404')
 })
 
-app.use((err, req, res, next) => {
+app.use((err, req, res) => {
   console.error(err.stack)
   res.status(500)
   res.render('500')

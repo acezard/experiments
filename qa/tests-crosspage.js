@@ -12,7 +12,7 @@ suite('Cross-Page Tests', () => {
     const referrer = 'http://localhost:3000/tours/hood-river'
     browser.visit(referrer, () => {
       browser.clickLink('.requestGroupRate', () => {
-        assert(browser.field('referrer').value === referrer)
+        assert(browser.resources[0].request.headers._headers[0][1] === referrer, 'Wrong value')
         done()
       })
     })
@@ -22,7 +22,7 @@ suite('Cross-Page Tests', () => {
     const referrer = 'http://localhost:3000/tours/oregon-coast'
     browser.visit(referrer, () => {
       browser.clickLink('.requestGroupRate', () => {
-        assert(browser.field('referrer').value === referrer)
+        assert(browser.resources[0].request.headers._headers[0][1] === referrer)
         done()
       })
     })

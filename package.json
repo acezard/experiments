@@ -4,17 +4,22 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "linkchecker": "./node_modules/.bin/broken-link-checker http://localhost:3000 -ro",
+    "eslint": "./node_modules/.bin/eslint ./**/*.js --fix; exit 0",
+    "mocha": "./node_modules/.bin/mocha -u tdd -R spec qa/*.js",
+    "test": "npm run linkchecker && npm run eslint && npm run mocha"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "express": "^4.14.0",
     "express3-handlebars": "^0.5.2",
-    "zombie": "^4.2.1"
+    "mocha": "^3.1.0"
   },
   "devDependencies": {
+    "broken-link-checker": "^0.7.3",
     "chai": "^3.5.0",
-    "mocha": "^3.1.0"
+    "mocha": "^3.1.0",
+    "zombie": "^4.2.1"
   }
 }
