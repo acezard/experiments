@@ -1,0 +1,47 @@
+{{#section 'head'}}
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.0.5/handlebars.min.js"></script>
+  <script id="nurseryRhymeTemplate" type="text/x-handlebars-template">
+  Marry had a little <b>\{{animal}}</b>, its <b>\{{bodyPart}}</b>
+  was <b>\{{adjective}}</b> as <b>\{{noun}}</b>.
+  </script>
+{{/section}}
+
+<div id="nurseryRhyme">Click a button....</div>
+<hr>
+<button id="btnNurseryRhyme">Generate nursery rhyme</button>
+<button id="btnNurseryRhymeAjax">Generate nursery rhyme from AJAX</button>
+
+{{#section 'dom'}}
+  <script>
+  const template = Handlebars.compile(document.getElementById('nurseryRhymeTemplate').innerHTML)
+
+  const nurseryEl = document.getElementById('nurseryRhyme')
+
+  document.getElementById('btnNurseryRhyme').addEventListener('click', (e) => {
+    e.preventDefault()
+
+    nurseryEl.innerHTML = template({
+      animal: 'basilisk',
+      bodyPart: 'tail',
+      adjective: 'sharp',
+      noun: 'a needle'
+    })
+  })
+
+  document.getElementById('btnNurseryRhymeAjax').addEventListener('click', (e) => {
+    e.preventDefault()
+
+    const opts = {
+      method: 'GET'
+    }
+
+    fetch('/data/nursery-rhyme', opts).then(function (response) {
+      return response.json()
+    })
+
+    .then(function (body) {
+      nurseryEl.innerHTML = template(body)
+    })
+  })
+  </script>
+{{/section}}

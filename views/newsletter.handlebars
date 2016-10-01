@@ -1,0 +1,86 @@
+<h2>Sign up for our newsletter to receive news and specials!</h2>
+<form class="form-horizontal" role="form" action="/process?form=newsletter" method="POST">
+  <input type="hidden" name="_csrf" value="{{csrf}}">
+  <div class="form-group">
+    <label for="fieldName" class="col-sm-2 control-label">Name</label>
+    <div class="col-sm-4">
+      <input type="text" class="form-control" id="fieldName" name="name">
+    </div>
+  </div>
+  <div class="form-group">
+    <label for="fieldEmail" class="col-sm-2 control-label">Email</label>
+    <div class="col-sm-4">
+      <input type="email" class="form-control" required id="fieldName" name="email">
+    </div>
+  </div>
+  Form Handling with Express | 89
+  <div class="form-group">
+    <div class="col-sm-offset-2 col-sm-4">
+      <button type="submit" class="btn btn-default">Register</button>
+    </div>
+  </div>
+</form>
+
+<div class="formContainer">
+  <form class="form-horizontal newsletterForm" role="form" action="/process?form=newsletter" method="POST">
+    <input type="hidden" name="_csrf" value="{{csrf}}">
+    <div class="form-group">
+      <label for="fieldName" class="col-sm-2 control-label">Name</label>
+      <div class="col-sm-4">
+        <input type="text" class="form-control" id="fieldName2" name="name">
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="fieldEmail" class="col-sm-2 control-label">Email</label>
+      <div class="col-sm-4">
+        <input type="email" class="form-control" required id="fieldEmail" name="email">
+      </div>
+    </div>
+    <div class="form-group">
+      <div class="col-sm-offset-2 col-sm-4">
+        <button type="submit" class="btn btn-default">Register</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+{{#section 'dom'}}
+  <script>
+    const elem = document.querySelector('.newsletterForm')
+    elem.addEventListener('submit', (e) => {
+      e.preventDefault()
+
+      const action = elem.getAttribute('action')
+      const container = document.querySelector('.formContainer')
+
+      const opts = {
+        method: 'POST',
+        body: JSON.stringify({
+          name: document.getElementById('fieldName2').value,
+          email: document.getElementById('fieldEmail').value
+        }),
+        headers: new Headers({
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        })
+      }
+
+      fetch(action, opts)
+
+      .then(response => {
+        if (response.ok) {
+          response.blob().then(myBlob => {
+            container.innerHTML = 'SUCCESS'
+          })
+        } else {
+          console.log('Response was not ok')
+        }
+      })
+
+      .catch(err => {
+        console.log(`There was an error: ${error.message}`)
+      })
+    })
+  </script>
+{{/section}}

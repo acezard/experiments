@@ -1,0 +1,14 @@
+{{#section 'head'}}
+  <meta name="robots" content="noindex">
+{{/section}}
+
+<h1>Test page</h1>
+<p>We're testing some DOM stuff</p>
+
+{{#section 'dom'}}
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelector('h1').innerHTML = 'DOM Works'
+    })
+  </script>
+{{/section}}
