@@ -1,3 +1,4 @@
+'use strict'
 const Browser = require('zombie')
 const assert = require('chai').assert
 

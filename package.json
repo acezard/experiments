@@ -4,18 +4,21 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "linkchecker": "./node_modules/.bin/broken-link-checker http://localhost:3000 -ro",
-    "eslint": "./node_modules/.bin/eslint ./**/*.js --fix; exit 0",
-    "mocha": "./node_modules/.bin/mocha -u tdd -R spec qa/*.js",
+    "linkchecker": "npm-run blc http://localhost:3000 -ro",
+    "eslint": "npm-run eslint ./**/*.js --fix; exit 0",
+    "mocha": "npm-run mocha -u tdd -R spec qa/*.js",
     "test": "npm run linkchecker && npm run eslint && npm run mocha"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "body-parser": "^1.15.2",
+    "connect": "^3.5.0",
+    "cookie-parser": "^1.4.3",
     "express": "^4.14.0",
+    "express-session": "^1.14.1",
     "express3-handlebars": "^0.5.2",
-    "formidable": "^1.0.17",
+    "formidblcable": "^1.0.17",
     "mocha": "^3.1.0"
   },
   "devDependencies": {
