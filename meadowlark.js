@@ -8,6 +8,10 @@ const credentials = require('./credentials.js')
 const cookieParser = require('cookie-parser')
 const session = require('express-session')
 const connect = require('connect')
+const nodemailer = require('nodemailer')
+const emailService = require('./lib/email.js')(credentials)
+
+/*emailService.send('acezard@gmail.com', 'Title Ipsum', 'Body Ipsum')*/
 
 const handlebars = require('express3-handlebars').create({
   defaultLayout:'main',
@@ -55,10 +59,6 @@ const urlencodedParser = bodyParser.urlencoded({ extended: false })
 const jsonParser = bodyParser.json()
 
 
-app.use(function(req, res, next){
-  console.log('\n\nALLWAYS')
-  next()
-})
 app.get('/a', function(req, res){
   console.log('/a: route terminated')
   res.send('a')
@@ -70,10 +70,7 @@ app.get('/b', function(req, res, next){
   console.log('/b: route not terminated')
   next()
 })
-app.use(function(req, res, next){
-  console.log('SOMETIMES')
-  next()
-})
+
 app.get('/b', function(req, res, next){
   console.log('/b (part 2): error thrown' )
   throw new Error('b failed')
