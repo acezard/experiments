@@ -13,7 +13,7 @@
   "license": "ISC",
   "dependencies": {
     "body-parser": "^1.15.2",
-    "connect": "^3.5.0",
+    "connect": "^2.30.2",
     "cookie-parser": "^1.4.3",
     "express": "^4.14.0",
     "express-logger": "0.0.3",
@@ -22,8 +22,10 @@
     "formidblcable": "^1.0.17",
     "loadtest": "^2.0.3",
     "mocha": "^3.1.0",
+    "mongoose": "^4.6.2",
     "morgan": "^1.7.0",
-    "nodemailer": "^2.6.4"
+    "nodemailer": "^2.6.4",
+    "session-mongoose": "^0.5.2"
   },
   "devDependencies": {
     "broken-link-checker": "^0.7.3",

@@ -13,50 +13,14 @@ const emailService = require('./lib/email.js')(credentials)
 const http = require('http')
 const morgan = require('morgan')
 const logger = require('express-logger')
-
-app.use(function(req, res, next){
- // create a domain for this request
- var domain = require('domain').create();
- // handle errors on this domain
- domain.on('error', function(err){
- console.error('DOMAIN ERROR CAUGHT\n', err.stack);
- try {
- // failsafe shutdown in 5 seconds
- setTimeout(function(){
- console.error('Failsafe shutdown.');
- process.exit(1);
- }, 5000);
- // disconnect from the cluster
-
- var worker = require('cluster').worker;
- if(worker) worker.disconnect();
- // stop taking new requests
- server.close();
- try {
- // attempt to use Express error route
- next(err);
- } catch(err){
- // if Express error route failed, try
- // plain Node response
- console.error('Express error mechanism failed.\n', err.stack);
- res.statusCode = 500;
- res.setHeader('content-type', 'text/plain');
- res.end('Server error.');
- }
- } catch(err){
- console.error('Unable to send 500 response.\n', err.stack);
- }
- });
- // add the request and response objects to the domain
- domain.add(req);
- domain.add(res);
- // execute the rest of the request chain in the domain
- domain.run(next);
-});
-// other middleware and routes go here
-var server = http.createServer(app).listen(app.get('port'), function(){
- console.log('Listening on port %d.', app.get('port'));
-});
+const dataDir = `${__dirname}/data`
+const vacationPhotoDir = `${dataDir}/vacation-photo`
+const fs = require('fs')
+const Vacation = require('./models/vacation.js')
+const MongoSessionStore = require('session-mongoose')(connect)
+const sessionStore = new MongoSessionStore({url: credentials.mongo.development.connectionString})
+fs.existsSync(dataDir) || fs.mkdirSync(dataDir)
+fs.existsSync(vacationPhotoDir) || fs.mkdirSync(vacationPhotoDir)
 
 /*emailService.send('acezard@gmail.com', 'Title Ipsum', 'Body Ipsum')*/
 switch(app.get('env')) {
@@ -77,6 +41,71 @@ app.use(function(req, res, next){
   next()
 })
 
+const mongoose = require('mongoose')
+const opts = {
+  server: {
+    socketOptions: { keepAlive: 1}
+  }
+}
+switch(app.get('env')) {
+case 'development':
+  mongoose.connect(credentials.mongo.development.connectionString, opts)
+  break
+case 'production':
+  mongoose.connect(credentials.mongo.production.connectionString, opts)
+  break
+default:
+  throw new Error('Unknown execution environment: ' + app.get('env'))
+}
+
+Vacation.find(function(err, vacations){
+  if(vacations.length) return
+
+  new Vacation({
+    name: 'Hood River Day Trip',
+    slug: 'hood-river-day-trip',
+    category: 'Day Trip',
+    sku: 'HR199',
+    description: 'Spend a day sailing on the Columbia and ' +
+    'enjoying craft beers in Hood River!',
+    priceInCents: 9995,
+    tags: ['day trip', 'hood river', 'sailing', 'windsurfing', 'breweries'],
+    inSeason: true,
+    maximumGuests: 16,
+    available: true,
+    packagesSold: 0,
+  }).save()
+
+  new Vacation({
+    name: 'Oregon Coast Getaway',
+    slug: 'oregon-coast-getaway',
+    category: 'Weekend Getaway',
+    sku: 'OC39',
+    description: 'Enjoy the ocean air and quaint coastal towns!',
+    priceInCents: 269995,
+    tags: ['weekend getaway', 'oregon coast', 'beachcombing'],
+    inSeason: false,
+    maximumGuests: 8,
+    available: true,
+    packagesSold: 0,
+  }).save()
+
+  new Vacation({
+    name: 'Rock Climbing in Bend',
+    slug: 'rock-climbing-in-bend',
+    category: 'Adventure',
+    sku: 'B99',
+    description: 'Experience the thrill of climbing in the high desert.',
+    priceInCents: 289995,
+    tags: ['weekend getaway', 'bend', 'high desert', 'rock climbing'],
+    inSeason: true,
+    requiresWaiver: true,
+    maximumGuests: 4,
+    available: false,
+    packagesSold: 0,
+    notes: 'The tour guide is currently recovering from a skiing accident.',
+  }).save()
+})
 
 
 const handlebars = require('express3-handlebars').create({
@@ -102,14 +131,9 @@ app.use((req, res, next) => {
 app.use(express.static(`${__dirname}/public`))
 app.use(cookieParser(credentials.cookieSecret))
 app.use(session({
-  resave: true,
-  saveUninitialized: true,
-  secret: 'keyboard cat',
-  cookie: {
-    secure: false,
-    maxAge: 600000
-  }
+  store: sessionStore
 }))
+
 app.use((req, res, next) => {
   res.locals.flash = req.session.flash
   delete req.session.flash
@@ -168,13 +192,77 @@ app.get('/newsletter', (req, res) => {
   res.render('newsletter', {csrf: 'CSRF token goes here'})
 })
 
-/*app.post('/process', urlencodedParser, (req, res) => {
-  console.log('Form (from querystring): ' + req.query.form)
-  console.log('CSRF token (from hidden form field): ' + req.body._csrf)
-  console.log('Name (from visible form field): ' + req.body.name)
-  console.log('Email (from visible form field): ' + req.body.email)
-  res.redirect(303, '/thank-you')
-})*/
+app.get('/set-currency/:currency', (req, res) => {
+  req.session.currency = req.params.currency
+  return res.redirect(303, '/vacations')
+})
+
+function convertFromUSD(value, currency){
+ switch(currency){
+ case 'USD': return value * 1;
+ case 'GBP': return value * 0.6;
+ case 'BTC': return value * 0.0023707918444761;
+ default: return NaN;
+ }
+}
+
+app.get('/vacations', (req, res) => {
+  Vacation.find({available: true}, (err, vacations) => {
+    const currency = req.session.currency || 'USD'
+    const context = {
+      currency: currency,
+      vacations: vacations.map(vacation => {
+        console.log(vacation.displayPrice())
+        return {
+          sku: vacation.sku,
+          name: vacation.name,
+          description: vacation.description,
+          price: convertFromUSD(vacation.priceInCents/100, currency),
+          inSeason: vacation.inSeason
+        }
+      }),
+    }
+    switch(currency){
+    case 'USD': context.currencyUSD = 'selected'
+      break
+    case 'GBP': context.currencyGBP = 'selected'
+      break
+    case 'BTC': context.currencyBTC = 'selected'
+      break
+    }
+
+    res.render('vacations', context)
+  })
+})
+
+const VacationInSeasonListener = require('./models/vacationInSeasonListener')
+app.get('/notify-me-when-in-season', (req, res) => {
+  res.render('notify-me-when-in-season', {sku: req.query.sku})
+})
+app.post('/notify-me-when-in-season', urlencodedParser, (req, res) => {
+  VacationInSeasonListener.update(
+    {email: req.body.email},
+    {$push: {skus: req.body.sku}},
+    {upsert: true},
+    err => {
+      if (err) {
+        console.error(err.stack)
+        req.session.flash = {
+          type: 'danger',
+          intro: 'oops',
+          message: 'there was an error'
+        }
+        return res.redirect(303, '/vacations')
+      }
+      req.session.flash = {
+        type: 'success',
+        intro: 'thank you',
+        message: 'you will be notified'
+      }
+      return res.redirect(303, '/vacationsnpm')
+    }
+  )
+})
 
 app.post('/process', jsonParser, (req, res) => {
   if (req.xhr || req.accepts('json, html') ==='json'){
@@ -194,16 +282,34 @@ app.get('/contest/vacation-photo', (req, res) => {
   })
 })
 
+function saveContestEntry() {}
+
 app.post('/contest/vacation-photo/:year/:month', (req, res) => {
   const form = new formidable.IncomingForm()
 
   form.parse(req, (err, fields, files) => {
     if (err) return res.redirect(303, '/error')
-    console.log('received fields:')
-    console.log(fields)
-    console.log('received files:')
-    console.log(files)
-    res.redirect(303, '/thank-you')
+    if (err) {
+      res.session.flash = {
+        type: 'danger',
+        intro: 'Oops!',
+        message: 'There was an error'
+      }
+      return res.redirect(303, '/contest/vacation-photo')
+    }
+
+    const photo = files.photo
+    const dir = `${vacationPhotoDir}/${Date.now()}`
+    const path = `${dir}/${photo.name}`
+    fs.mkdirSync(dir)
+    fs.renameSync(photo.path, `${dir}/${photo.name}`)
+    saveContestEntry('vacation-photo', fields.email, req.params.year, req.params.month, path)
+    req.session.flash = {
+      type: 'success',
+      intro: 'Good Luck',
+      message: 'OK'
+    }
+    return res.redirect(303, '/contest/vacation-photo/entries')
   })
 })
 
@@ -215,47 +321,7 @@ app.get('/headers', (req, res) => {
   res.send(s)
 })
 
-app.get('/nursery-rhyme', (req, res) => {
-  res.render('nursery-rhyme')
-})
-app.get('/data/nursery-rhyme', (req, res) => {
-  res.json({
-    animal: 'squirrel',
-    bodyPart: 'tail',
-    adjective: 'bushy',
-    noun: 'heck'
-  })
-})
-
-app.get('/', (req, res) => {
-  req.session.userName = 'Anon'
-  res.cookie('signed_monster', 'nom nom', { signed: true })
-  res.render('home')
-})
-
-app.get('/dom', (req, res) => {
-  res.render('dom-test')
-})
-
-app.get('/about', (req, res) => {
-  res.render('about', { fortune: fortune.getFortune(), pageTestScript: '/qa/tests-about.js' })
-})
-
-app.get('/tours/hood-river', (req, res) => {
-  res.render('tours/hood-river')
-})
-
-app.get('/tours/oregon-coast', (req, res) => {
-  res.render('tours/hood-river')
-})
-
-app.get('/tours/request-group-rate', (req, res) => {
-  res.render('tours/request-group-rate')
-})
-
-app.get('/newsletter/archive', (req, res) => {
-  res.render('tours/request-group-rate')
-})
+require('./routes.js')(app)
 
 function NewsletterSignup(){
 }
