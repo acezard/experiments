@@ -10,7 +10,7 @@ const session = require('express-session')
 const connect = require('connect')
 const nodemailer = require('nodemailer')
 const emailService = require('./lib/email.js')(credentials)
-const http = require('http')
+const https = require('https')
 const morgan = require('morgan')
 const logger = require('express-logger')
 const dataDir = `${__dirname}/data`
@@ -19,6 +19,16 @@ const fs = require('fs')
 const Vacation = require('./models/vacation.js')
 const MongoSessionStore = require('session-mongoose')(connect)
 const sessionStore = new MongoSessionStore({url: credentials.mongo.development.connectionString})
+const cors = require('cors')
+const rest = require('connect-rest')
+const csurf = require('csurf')
+const auth = require('./lib/auth.js')(app, {
+  providers: credentials.authProviders,
+  successRedirect: '/account',
+  failureRedirect: '/unauthorized'
+})
+auth.init()
+auth.registerRoutes()
 fs.existsSync(dataDir) || fs.mkdirSync(dataDir)
 fs.existsSync(vacationPhotoDir) || fs.mkdirSync(vacationPhotoDir)
 
@@ -115,7 +125,9 @@ const handlebars = require('express3-handlebars').create({
       if(!this._sections) this._sections = {}
       this._sections[name] = options.fn(this)
       return null
-    }
+    },
+
+    static: name => require('./lib/static.js').map(name)
   }
 })
 
@@ -124,6 +136,7 @@ app.set('view engine', 'handlebars')
 
 app.set('port', process.env.PORT || 3000)
 
+app.use('/api', cors())
 app.use((req, res, next) => {
   res.locals.showTests = app.get('env') !== 'production' && req.query.test === '1'
   next()
@@ -133,6 +146,11 @@ app.use(cookieParser(credentials.cookieSecret))
 app.use(session({
   store: sessionStore
 }))
+app.use(csurf())
+app.use((req, res, next) => {
+  res.locals._csrfToken = req.csrfToken()
+  next()
+})
 
 app.use((req, res, next) => {
   res.locals.flash = req.session.flash
@@ -322,12 +340,18 @@ app.get('/headers', (req, res) => {
 })
 
 require('./routes.js')(app)
+require('./attraction.js')(app, urlencodedParser)
 
-function NewsletterSignup(){
-}
-NewsletterSignup.prototype.save = function(cb){
+/*const apiOptions = {
+  context: '/api',
+  domain: require('domain').create()
+}*/
+/*app.use(rest.rester(apiOptions))
+function NewsletterSignup() {
+}*/
+/*NewsletterSignup.prototype.save = function(cb){
   cb()
-}
+}*/
 
 app.post('/newsletter', urlencodedParser, (req, res) => {
   const name = req.body.name || ''
@@ -365,6 +389,14 @@ app.post('/newsletter', urlencodedParser, (req, res) => {
   })
 })
 
+app.get('/account', customerOnly, (req, res) => {
+  res.render('account')
+})
+
+app.get('/sales', employeeOnly, (req, res) => {
+  res.render('sales')
+})
+
 app.use((err, req, res, next) => {
   console.error(err.stack)
   res.status(500)
@@ -376,8 +408,14 @@ app.use((req, res) => {
   res.render('404')
 })
 
+var options = {
+ key: fs.readFileSync(__dirname + '/meadowlark.pem'),
+ cert: fs.readFileSync(__dirname + '/meadowlark.crt')
+}
+
+
 function startServer() {
-  http.createServer(app).listen(app.get('port'), () => {
+  https.createServer(options, app).listen(app.get('port'), () => {
     console.log(`Express started in ${app.get('env')} mode on http://localhost:${app.get('port')}; press Ctrl-c to terminate`)
   })
 }
@@ -413,3 +451,14 @@ function getWeatherData() {
   }
 }
 
+function customerOnly(req, res) {
+  const user = req.session.passport.user
+  if(user && req.role === 'customer') return next()
+  res.redirect(303, '/unauthorized')
+}
+
+function employeeOnly(req, res, next) {
+  const user = req.session.passport.user
+  if(user && req.role === 'employee') return next()
+  next('route')
+}

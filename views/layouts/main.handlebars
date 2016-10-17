@@ -5,12 +5,12 @@
   <title>Meadowlark Travel</title>
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
   {{#if showTests}}
-    <link rel="stylesheet" href="/vendor/mocha.css">
+    <link rel="stylesheet" href="{{static '/css/main.css'}}n">
   {{/if}}
   {{{_sections.head}}}
 </head>
 <body>
-  <header><img src="/img/logo.png" alt="Meadowlark Travel Logo"></header>
+  <header><img src="{{static '/img/logo.png'}}" alt="Meadowlark Travel Logo"></header>
   {{#if flash}}
     <div class="alert alert-dismissible alert-{{flash.type}}">
       <button type="button" class="close"

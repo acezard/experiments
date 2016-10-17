@@ -7,6 +7,7 @@
     "linkchecker": "npm-run blc http://localhost:3000 -ro",
     "eslint": "npm-run eslint ./**/*.js --fix; exit 0",
     "mocha": "npm-run mocha -u tdd -R spec qa/*.js",
+    "sass": "npm-run node-sass ./scss/main.scss ./public/css/main.css",
     "test": "npm run linkchecker && npm run eslint && npm run mocha"
   },
   "author": "",
@@ -14,7 +15,10 @@
   "dependencies": {
     "body-parser": "^1.15.2",
     "connect": "^2.30.2",
+    "connect-rest": "^2.10.2",
     "cookie-parser": "^1.4.3",
+    "cors": "^2.8.1",
+    "csurf": "^1.9.0",
     "express": "^4.14.0",
     "express-logger": "0.0.3",
     "express-session": "^1.14.1",
@@ -24,7 +28,11 @@
     "mocha": "^3.1.0",
     "mongoose": "^4.6.2",
     "morgan": "^1.7.0",
+    "node-sass": "^3.10.1",
     "nodemailer": "^2.6.4",
+    "passport": "^0.3.2",
+    "passport-facebook": "^2.1.1",
+    "restler": "^3.4.0",
     "session-mongoose": "^0.5.2"
   },
   "devDependencies": {

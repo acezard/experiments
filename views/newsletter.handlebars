@@ -1,5 +1,6 @@
 <h2>Sign up for our newsletter to receive news and specials!</h2>
 <div class="formContainer">
+  <input type="hidden" name="csrf" value="{{_csrfToken}}">
     <form class="form-horizontal newsletterForm" role="form" 
             action="/newsletter" method="POST">
         <div class="form-group">
